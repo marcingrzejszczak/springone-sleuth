@@ -23,12 +23,13 @@ import org.springframework.web.client.RestTemplate;
 
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandKey;
 
 /**
  * @author Marcin Grzejszczak
  */
 @RestController
-class SpringOneController {
+public class SpringOneController {
 
 	private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
@@ -71,9 +72,6 @@ class SpringOneController {
 						catch (InterruptedException e) {
 							e.printStackTrace();
 						}
-						finally {
-							tracer.close(span);
-						}
 					}
 
 					@Override public String toString() {
@@ -85,7 +83,6 @@ class SpringOneController {
 		future.get();
 		return "SPRINGONE [" + response + "]";
 	}
-
 
 	@RequestMapping("/springoneasync")
 	public String springOneAsync() throws ExecutionException, InterruptedException {
@@ -120,12 +117,24 @@ class SpringOneController {
 
 	@RequestMapping("/springonehystrix")
 	public String springOneHystrix() throws Exception {
-		return "HYSTRIX [" + new TraceCommand<String>(this.tracer, this.traceKeys, HystrixCommand.Setter.withGroupKey(
-				HystrixCommandGroupKey.Factory.asKey("springone"))) {
+		return "HYSTRIX [" + new TraceCommand<String>(this.tracer, this.traceKeys,
+				HystrixCommand.Setter.withGroupKey(
+					HystrixCommandGroupKey.Factory.asKey("springone"))
+					.andCommandKey(HystrixCommandKey.Factory.asKey("springonecommandkey"))) {
 			@Override public String doRun() throws Exception {
 				return restTemplate.getForObject("http://localhost:8081/start", String.class);
 			}
 		}.execute() + "]";
+	}
+
+	@RequestMapping("/springonejavanica")
+	public String springOneJavanica() throws Exception {
+		return "JAVANICA [" + this.springOneWorker.callService1() + "]";
+	}
+
+	@RequestMapping("/springonejavanicaunknown")
+	public String springOneJavanicaUnknown() throws Exception {
+		return "JAVANICA [" + this.springOneWorker.callUnknownService() + "]";
 	}
 
 	@SpanName("my_runnable_span")
