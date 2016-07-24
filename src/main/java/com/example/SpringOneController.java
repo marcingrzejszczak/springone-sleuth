@@ -13,6 +13,7 @@ import org.springframework.cloud.sleuth.SpanNamer;
 import org.springframework.cloud.sleuth.TraceKeys;
 import org.springframework.cloud.sleuth.TraceRunnable;
 import org.springframework.cloud.sleuth.Tracer;
+import org.springframework.cloud.sleuth.instrument.async.TraceableExecutorService;
 import org.springframework.cloud.sleuth.instrument.hystrix.TraceCommand;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -82,6 +83,28 @@ public class SpringOneController {
 		String response = this.restTemplate.getForObject("http://localhost:8081/start", String.class);
 		future.get();
 		return "SPRINGONE [" + response + "]";
+	}
+
+	@RequestMapping("/springoneexecutorservice")
+	public String springOneTraceableExecutorService() throws ExecutionException, InterruptedException {
+		Future<?> future = new TraceableExecutorService(EXECUTOR_SERVICE, this.tracer, this.traceKeys, this.spanNamer, "traceable_executor_service")
+				.submit((Runnable) () -> {
+					Span span = tracer.getCurrentSpan();
+					try {
+						tracer.addTag("conference", "springone");
+						Thread.sleep(2000);
+						span.logEvent("learnt_spring_boot");
+						Thread.sleep(2000);
+						span.logEvent("learnt_spring_cloud");
+					}
+					catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				});
+		//future.get();
+		String response = this.restTemplate.getForObject("http://localhost:8081/start", String.class);
+		future.get();
+		return "SPRINGONE TRACEABLE [" + response + "]";
 	}
 
 	@RequestMapping("/springoneasync")

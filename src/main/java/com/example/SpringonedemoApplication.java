@@ -16,9 +16,7 @@ import org.springframework.web.client.RestTemplate;
 public class SpringonedemoApplication {
 
 	public static void main(String[] args) {
-
 		ExceptionUtils.setFail(true);
-
 		SpringApplication.run(SpringonedemoApplication.class, args);
 	}
 
